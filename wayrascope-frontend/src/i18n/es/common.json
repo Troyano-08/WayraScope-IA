@@ -1,0 +1,120 @@
+{
+  "app": {
+    "title": "WayraScope AI",
+    "subtitle": "Explorador espacial del clima, el confort y la sostenibilidad para tus actividades.",
+    "sourcesLink": "Fuentes & Licencias",
+    "emptyTitle": "Analiza una ciudad o selecciona un punto",
+    "emptySubtitle": "Completa los controles o usa el mapa para descubrir confort, calidad del aire y pronósticos.",
+    "advisorTitle": "WayraBot recomienda"
+  },
+  "header": {
+    "languageToggleLabel": "Selector de idioma",
+    "switchLight": "Cambiar a modo claro",
+    "switchDark": "Cambiar a modo oscuro",
+    "light": "Modo claro",
+    "dark": "Modo oscuro"
+  },
+  "inputs": {
+    "city": "Ciudad",
+    "cityPlaceholder": "Ej. Huánuco",
+    "mapHint": "O elige en el mapa para usar coordenadas",
+    "coordsBadge": "Lat {{lat}} · Lon {{lon}}",
+    "date": "Fecha",
+    "event": "Tipo de evento",
+    "eventOptions": {
+      "viaje": "Viaje",
+      "desfile": "Desfile",
+      "caminata": "Caminata",
+      "pesca": "Pesca",
+      "boda": "Boda",
+      "picnic": "Picnic"
+    },
+    "analyze": "Analizar",
+    "analyzing": "Analizando..."
+  },
+  "map": {
+    "title": "Selecciona en el mapa",
+    "radiusLabel": "Radio visual {{value}}",
+    "instructions": "Haz clic para fijar el pin (radio ±5 km)",
+    "helper": "La ciudad se completa automáticamente tras analizar",
+    "clear": "Limpiar pin"
+  },
+  "cards": {
+    "location": "Ubicación",
+    "comfort": "Confort",
+    "eco": "Eco-Impacto",
+    "aqi": "Calidad del aire",
+    "trends": "Tendencias",
+    "coordinates": "Lat {{lat}}° · Lon {{lon}}°",
+    "copyCoords": "Copiar coordenadas",
+    "copied": "¡Copiado!",
+    "dominant": "Dominante:",
+    "noData": "s/d"
+  },
+  "trend": {
+    "temperature": "Temperatura",
+    "precipitation": "Precipitación",
+    "humidity": "Humedad",
+    "wind": "Viento"
+  },
+  "chart": {
+    "daily": "Serie diaria (NASA ±10 días)",
+    "hourly": "Panel horario (Open-Meteo)",
+    "temperature": "Temperatura",
+    "precipitation": "Precipitación",
+    "wind": "Viento",
+    "humidity": "Humedad",
+    "windKmh": "Viento km/h",
+    "windMs": "Viento m/s",
+    "noHourly": "Sin datos horarios para la fecha seleccionada.",
+    "bestHours": "Mejores horas",
+    "p25": "Percentil 25",
+    "p75": "Percentil 75"
+  },
+  "alerts": {
+    "errorTitle": "Revisa e inténtalo de nuevo",
+    "hourlyTitle": "Open-Meteo",
+    "data_gaps_title": "Datos incompletos",
+    "data_gaps": "Cobertura {{coverage}}% para la serie seleccionada"
+  },
+  "errors": {
+    "mapRequired": "Selecciona un punto en el mapa para continuar.",
+    "missingCity": "Ingresa una ciudad válida.",
+    "generic": "Ocurrió un error inesperado.",
+    "hourlyFetch": "No se pudieron obtener los datos horarios."
+  },
+  "probs": {
+    "title": "Probabilidades (DOY ±10 · 2001-2024)",
+    "windowNote": "n = tamaño de muestra",
+    "very_hot": "Muy caluroso",
+    "very_cold": "Muy frío",
+    "very_windy": "Muy ventoso",
+    "very_humid": "Muy húmedo",
+    "very_uncomfortable": "Muy incómodo",
+    "above": "≥ {{value}} {{unit}}",
+    "below": "≤ {{value}} {{unit}}",
+    "sample": "Ventana ±10 días · n = {{value}}",
+    "noData": "Sin probabilidades disponibles"
+  },
+  "bestDays": {
+    "title": "Mejores días",
+    "subtitle": "Ranking NASA",
+    "score": "Score {{value}}",
+    "empty": "Sin recomendaciones disponibles."
+  },
+  "downloads": {
+    "title": "Descargas",
+    "subtitle": "Incluye metadatos (X-WayraMeta / meta-body)",
+    "csv": "CSV",
+    "json": "JSON",
+    "csvTooltipNoCity": "Requiere nombre de ciudad",
+    "jsonTooltipNoCity": "Requiere nombre de ciudad",
+    "success": "Descarga lista: {{filename}}",
+    "error": "No se pudo descargar. Intenta nuevamente."
+  },
+  "footer": {
+    "sources": "Fuentes",
+    "license": "Datos sujetos a licencias NASA POWER · Open-Meteo · WAQI.",
+    "version": "WayraScope AI · v1.0.0"
+  }
+}

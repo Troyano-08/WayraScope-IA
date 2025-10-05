@@ -1,0 +1,51 @@
+body {
+  font-family: "Poppins", sans-serif;
+  color: #fff;
+  text-align: center;
+  overflow-x: hidden;
+  margin: 0;
+}
+
+.background {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -1;
+}
+
+header {
+  margin-top: 2rem;
+}
+
+.input-section input, .input-section button {
+  margin: 0.5rem;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+.input-section button {
+  background-color: #00d4ff;
+  color: #000;
+  cursor: pointer;
+}
+
+.weather-panel {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin: 2rem auto;
+  width: 80%;
+  backdrop-filter: blur(5px);
+}
+
+.wayrabot img {
+  width: 120px;
+}
+
+.wayrabot p {
+  margin-top: 0.5rem;
+}

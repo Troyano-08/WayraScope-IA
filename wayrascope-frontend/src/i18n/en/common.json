@@ -69,7 +69,16 @@
     "noHourly": "No hourly data for the selected date.",
     "bestHours": "Best hours",
     "p25": "25th percentile",
-    "p75": "75th percentile"
+    "p75": "75th percentile",
+    "insights": "Temperature insights",
+    "hoverHint": "Hover the chart to explore each day",
+    "range": "{{min}} - {{max}} {{unit}} (p25-p75)",
+    "min": "Min",
+    "avg": "Avg",
+    "max": "Max",
+    "windowRange": "±10-day window around event",
+    "eventMarker": "Event",
+    "eventContext": "Event anchor: {{date}}"
   },
   "alerts": {
     "errorTitle": "Review and try again",

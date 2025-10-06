@@ -105,34 +105,35 @@ def _run_analysis(city: str, date: str, event_type: Optional[str] = None) -> Tup
     air = get_air_quality(lat, lon)
 
     merged = merge_sources(nasa, meteo, air)
+    combined_daily = _combine_daily_series(date, merged)
 
     current = merged["current"]
     comfort = compute_comfort(current.get("temperature"), current.get("humidity"), current.get("wind"))
     eco = compute_ecoimpact(current.get("temperature"), current.get("precipitation"), merged["air_quality_index"])
 
     trends = compare_trends({
-        "temperature": merged["daily_nasa"]["temperature"],
-        "precipitation": merged["daily_nasa"]["precipitation"],
-        "humidity": merged["daily_nasa"]["humidity"],
-        "wind": merged["daily_nasa"]["wind"]
+        "temperature": combined_daily["temperature"],
+        "precipitation": combined_daily["precipitation"],
+        "humidity": combined_daily["humidity"],
+        "wind": combined_daily["wind"]
     })
 
     best_days = find_best_days(
         event,
-        dates=[_fmt_out(d) for d in merged["daily_nasa"]["dates"]],
-        temperature=merged["daily_nasa"]["temperature"],
-        precipitation=merged["daily_nasa"]["precipitation"],
-        wind=merged["daily_nasa"]["wind"],
-        humidity=merged["daily_nasa"]["humidity"],
+        dates=combined_daily["dates"],
+        temperature=combined_daily["temperature"],
+        precipitation=combined_daily["precipitation"],
+        wind=combined_daily["wind"],
+        humidity=combined_daily["humidity"],
     )
 
     out = {
         "location": {"city": loc["name"], "country": loc["country"], "lat": lat, "lon": lon},
         "range": f"{start.replace('-', '')} a {end.replace('-', '')}",
-        "temperature": merged["daily_nasa"]["temperature"],
-        "humidity": merged["daily_nasa"]["humidity"],
-        "precipitation": merged["daily_nasa"]["precipitation"],
-        "wind": merged["daily_nasa"]["wind"],
+        "temperature": combined_daily["temperature"],
+        "humidity": combined_daily["humidity"],
+        "precipitation": combined_daily["precipitation"],
+        "wind": combined_daily["wind"],
         "air_quality_index": merged["air_quality_index"],
         "comfort_index": comfort,
         "eco_impact": eco,
@@ -156,13 +157,14 @@ def _run_analysis(city: str, date: str, event_type: Optional[str] = None) -> Tup
                 }
             },
             "notes": [
-                "Los días sin dato de NASA (futuros o no disponibles) se excluyen del ranking de mejores días."
+                "Los días sin dato de NASA (futuros o no disponibles) se complementan con Open-Meteo para estimar tendencias."
             ]
         }
     }
 
     context = {
         "merged": merged,
+        "daily": combined_daily,
         "start": start,
         "end": end,
         "event_type": event,
@@ -192,6 +194,9 @@ def _build_daily_dataset(
     nasa_daily = merged.get("daily_nasa", {})
     dates_raw = nasa_daily.get("dates", [])
 
+    combined_daily = context.get("daily") if isinstance(context.get("daily"), dict) else None
+    combined_dates = combined_daily.get("dates", []) if combined_daily else []
+
     start_str, _ = _range_10(date)
     start_dt = datetime.strptime(start_str, "%Y-%m-%d")
 
@@ -204,7 +209,9 @@ def _build_daily_dataset(
     dataset: List[Dict[str, Union[str, float, None]]] = []
 
     for idx in range(length):
-        if idx < len(dates_raw) and dates_raw[idx]:
+        if idx < len(combined_dates):
+            date_value = combined_dates[idx]
+        elif idx < len(dates_raw) and dates_raw[idx]:
             raw_value = str(dates_raw[idx])
             date_value = _fmt_out(raw_value)
         else:
@@ -221,6 +228,113 @@ def _build_daily_dataset(
         )
 
     return dataset
+
+
+def _coerce_float(value: Any) -> Optional[float]:
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _combine_daily_series(date: str, merged: Dict[str, Any]) -> Dict[str, List[Optional[float]]]:
+    start, end = _range_10(date)
+    start_dt = datetime.strptime(start, "%Y-%m-%d")
+    end_dt = datetime.strptime(end, "%Y-%m-%d")
+
+    total_days = (end_dt - start_dt).days + 1
+    timeline = [(start_dt + timedelta(days=offset)).strftime("%Y-%m-%d") for offset in range(total_days)]
+
+    nasa_daily = merged.get("daily_nasa", {})
+    nasa_dates = nasa_daily.get("dates", [])
+
+    def _build_nasa_map(values_key: str) -> Dict[str, Optional[float]]:
+        values = nasa_daily.get(values_key, [])
+        mapping: Dict[str, Optional[float]] = {}
+        for idx, raw_date in enumerate(nasa_dates):
+            if raw_date is None:
+                continue
+            key = _fmt_out(str(raw_date))
+            val = values[idx] if idx < len(values) else None
+            mapping[key] = _coerce_float(val)
+        return mapping
+
+    nasa_temperature = _build_nasa_map("temperature")
+    nasa_precip = _build_nasa_map("precipitation")
+    nasa_wind = _build_nasa_map("wind")
+    nasa_humidity = _build_nasa_map("humidity")
+
+    open_daily = merged.get("daily_openmeteo", {})
+    open_dates = open_daily.get("dates", [])
+    open_tmax = open_daily.get("tmax", [])
+    open_tmin = open_daily.get("tmin", [])
+    open_prec = open_daily.get("precipitation", [])
+    open_wind_max = open_daily.get("wind_max", [])
+    open_humidity = open_daily.get("humidity", [])
+
+    open_temperature: Dict[str, Optional[float]] = {}
+    open_precip: Dict[str, Optional[float]] = {}
+    open_wind: Dict[str, Optional[float]] = {}
+    open_humid: Dict[str, Optional[float]] = {}
+
+    for idx, day in enumerate(open_dates):
+        temp_max = _coerce_float(open_tmax[idx] if idx < len(open_tmax) else None)
+        temp_min = _coerce_float(open_tmin[idx] if idx < len(open_tmin) else None)
+        precip_val = _coerce_float(open_prec[idx] if idx < len(open_prec) else None)
+        wind_val = _coerce_float(open_wind_max[idx] if idx < len(open_wind_max) else None)
+        humid_val = _coerce_float(open_humidity[idx] if idx < len(open_humidity) else None)
+
+        if temp_max is not None and temp_min is not None:
+            open_temperature[day] = (temp_max + temp_min) / 2.0
+        elif temp_max is not None or temp_min is not None:
+            open_temperature[day] = temp_max if temp_max is not None else temp_min
+
+        if precip_val is not None:
+            open_precip[day] = precip_val
+
+        if wind_val is not None:
+            # Los datos diarios de Open-Meteo reportan ráfagas máximas. Ajustamos para aproximar viento medio.
+            open_wind[day] = wind_val * 0.7
+
+        if humid_val is not None:
+            open_humid[day] = humid_val
+
+    temperatures: List[Optional[float]] = []
+    precipitation: List[Optional[float]] = []
+    wind: List[Optional[float]] = []
+    humidity: List[Optional[float]] = []
+
+    for day in timeline:
+        temp_val = nasa_temperature.get(day)
+        if temp_val is None:
+            temp_val = open_temperature.get(day)
+
+        precip_val = nasa_precip.get(day)
+        if precip_val is None:
+            precip_val = open_precip.get(day)
+
+        wind_val = nasa_wind.get(day)
+        if wind_val is None:
+            wind_val = open_wind.get(day)
+
+        humid_val = nasa_humidity.get(day)
+        if humid_val is None:
+            humid_val = open_humid.get(day)
+
+        temperatures.append(temp_val)
+        precipitation.append(precip_val)
+        wind.append(wind_val)
+        humidity.append(humid_val)
+
+    return {
+        "dates": timeline,
+        "temperature": temperatures,
+        "precipitation": precipitation,
+        "wind": wind,
+        "humidity": humidity,
+    }
 
 
 def _build_csv_content(rows: List[Dict[str, Union[str, float, None]]]) -> str:

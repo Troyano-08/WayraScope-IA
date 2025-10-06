@@ -60,21 +60,21 @@ export const ProbabilitiesPanel = ({ probabilities, units }: ProbabilityPanelPro
             return (
               <div
                 key={item.key}
-                className="rounded-2xl border border-white/10 bg-gradient-to-br p-4 text-slate-800 shadow-glow dark:text-white"
+                className="rounded-2xl border border-white/40 bg-gradient-to-br from-white/90 via-white/60 to-white/30 p-4 text-slate-800 shadow-glow transition duration-500 dark:border-slate-500/30 dark:from-[#13213b] dark:via-[#0b172f] dark:to-[#050b18] dark:text-white"
               >
                 <div className="flex items-center gap-3">
                   <span className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br ${item.color} text-white`}>
                     <Icon className="h-5 w-5" aria-hidden />
                   </span>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/80">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 dark:text-white/80">
                       {t(`probs.${item.key}`)}
                     </p>
-                    <p className="text-2xl font-bold text-white drop-shadow">{probDisplay}</p>
+                    <p className="text-2xl font-bold text-slate-900 drop-shadow dark:text-white">{probDisplay}</p>
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-white/80 dark:text-slate-300">{detail}</p>
-                <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-white/70">
+                <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">{detail}</p>
+                <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-slate-500 dark:text-white/70">
                   {t('probs.sample', { value: entry.n })}
                 </p>
               </div>

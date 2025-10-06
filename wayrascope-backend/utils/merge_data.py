@@ -25,6 +25,7 @@ def merge_sources(nasa: Dict, meteo: Dict, air: Dict) -> Dict:
             "tmin": daily.get("temperature_2m_min", []),
             "precipitation": daily.get("precipitation_sum", []),
             "wind_max": daily.get("wind_speed_10m_max", []),
+            "humidity": daily.get("relative_humidity_2m_mean", []),
             "units": daily_units,
         },
         "daily_nasa": {

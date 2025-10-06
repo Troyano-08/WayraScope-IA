@@ -69,7 +69,16 @@
     "noHourly": "Sin datos horarios para la fecha seleccionada.",
     "bestHours": "Mejores horas",
     "p25": "Percentil 25",
-    "p75": "Percentil 75"
+    "p75": "Percentil 75",
+    "insights": "Insights de temperatura",
+    "hoverHint": "Pasa el cursor para explorar cada día",
+    "range": "{{min}} - {{max}} {{unit}} (p25-p75)",
+    "min": "Mín",
+    "avg": "Prom",
+    "max": "Máx",
+    "windowRange": "Ventana ±10 días alrededor del evento",
+    "eventMarker": "Evento",
+    "eventContext": "Evento base: {{date}}"
   },
   "alerts": {
     "errorTitle": "Revisa e inténtalo de nuevo",

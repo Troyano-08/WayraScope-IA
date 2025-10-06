@@ -8,14 +8,23 @@
   }
 
   body {
-    @apply bg-slate-100 text-slate-900 dark:bg-[#0b1020] dark:text-white;
+    @apply min-h-screen text-slate-900 transition-colors duration-500 ease-out;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-image: radial-gradient(circle at top, rgba(148, 163, 184, 0.12), transparent 55%),
+      linear-gradient(160deg, #f8fafc 0%, #eef2ff 35%, #e2e8f0 100%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    @apply text-white;
+    background-image: radial-gradient(circle at 25% -10%, rgba(110, 231, 249, 0.2), transparent 55%),
+      linear-gradient(180deg, #050b1a 0%, #0b1020 45%, #01030a 100%);
   }
 }
 
 @layer components {
   .glass-card {
-    @apply rounded-2xl border border-white/40 bg-white/70 p-4 text-slate-900 shadow-glow backdrop-blur transition dark:border-white/10 dark:bg-white/5 dark:text-slate-100;
+    @apply rounded-2xl border border-white/60 bg-white/80 p-4 text-slate-900 shadow-glow backdrop-blur-xl transition duration-300 dark:border-slate-500/40 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_0_30px_rgba(34,211,238,0.18)];
   }
 
   .starfield {
@@ -54,5 +63,24 @@
   }
   to {
     transform: translate3d(-120px, -120px, 0);
+  }
+}
+
+@keyframes orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
   }
 }

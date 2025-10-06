@@ -22,6 +22,7 @@ import { Downloads } from './components/Downloads'
 import { SourcesFooter } from './components/SourcesFooter'
 import { Alert } from './components/ui/Alert'
 import { Skeleton } from './components/ui/Skeleton'
+import { LoadingPlanet } from './components/ui/LoadingPlanet'
 import { useAnalyze } from './hooks/useAnalyze'
 import { useHourly } from './hooks/useHourly'
 import { useAppStore, STORAGE_THEME } from './store/useAppStore'
@@ -105,9 +106,9 @@ export const App = () => {
   const downloadsCity = useMemo(() => analyzeResult?.location.city ?? cityInput, [analyzeResult, cityInput])
 
   return (
-    <div className={clsx('min-h-screen bg-slate-100 pb-16 text-slate-900 transition-colors', theme === 'dark' && 'bg-[#0b1020] text-white')}>
+    <div className={clsx('min-h-screen pb-16 text-slate-900 transition-colors duration-500', theme === 'dark' && 'text-white')}>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
-        <header className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/80 via-white/30 to-transparent p-6 shadow-glow starfield dark:from-white/10 dark:via-transparent">
+        <header className="relative overflow-hidden rounded-3xl border border-white/40 bg-white/75 p-6 shadow-glow starfield backdrop-blur-xl transition duration-500 dark:border-slate-500/30 dark:bg-slate-900/70">
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{t('app.title')}</h1>
@@ -147,6 +148,7 @@ export const App = () => {
 
         {showSkeletons && (
           <div className="space-y-6">
+            <LoadingPlanet label={t('inputs.analyzing')} />
             <SummarySkeleton />
             <ChartSkeleton />
             <ChartSkeleton />
@@ -178,6 +180,7 @@ export const App = () => {
               uncertainty={analyzeResult.meta.uncertainty}
               dataQuality={analyzeResult.meta.data_quality}
               units={analyzeResult.meta.units}
+              eventDate={date}
             />
 
             <ProbabilitiesPanel probabilities={analyzeResult.probabilities} units={analyzeResult.meta.units} />
@@ -199,7 +202,7 @@ export const App = () => {
               />
             )}
 
-            {hourlyLoading ? <ChartSkeleton /> : <HourlyChart data={hourlyData} />}
+            {hourlyLoading ? <LoadingPlanet size="sm" label={t('inputs.analyzing')} /> : <HourlyChart data={hourlyData} />}
 
             <Downloads city={downloadsCity} date={date} disabled={!analyzeResult} />
 

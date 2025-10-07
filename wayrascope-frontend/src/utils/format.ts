@@ -104,6 +104,13 @@ export const trendIcon = (trend: string): string => {
   return '➡️'
 }
 
+export const trendStroke = (trend: string): string => {
+  const normalized = trend.trim()
+  if (normalized.includes('⬆') || normalized.toLowerCase().includes('up')) return 'text-emerald-300'
+  if (normalized.includes('⬇') || normalized.toLowerCase().includes('down')) return 'text-rose-300'
+  return 'text-slate-300'
+}
+
 export const rangeToDates = (range: string): string[] => {
   const [start, end] = range.split(/\s*a\s*/i)
   if (!start || !end) return []

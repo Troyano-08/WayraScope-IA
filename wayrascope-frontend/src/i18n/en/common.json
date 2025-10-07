@@ -35,9 +35,15 @@
   "map": {
     "title": "Pick on the map",
     "radiusLabel": "Visual radius {{value}}",
-    "instructions": "Click to place the pin (±5 km window)",
-    "helper": "City name updates automatically after analyzing",
-    "clear": "Clear pin"
+    "instructions": "Click or drag the pin to set coordinates (±5 km window)",
+    "helper": "City name updates automatically after analyzing or use your location.",
+    "clear": "Clear pin",
+    "cursor": "Cursor {{lat}}°, {{lon}}°",
+    "selected": "Pin {{lat}}°, {{lon}}°",
+    "geoLocate": "Use my location",
+    "geoLocating": "Locating...",
+    "geoError": "We couldn't get your location.",
+    "geoUnsupported": "Your browser does not allow geolocation."
   },
   "cards": {
     "location": "Location",
@@ -103,7 +109,14 @@
     "above": "≥ {{value}} {{unit}}",
     "below": "≤ {{value}} {{unit}}",
     "sample": "±10 day window · n = {{value}}",
-    "noData": "No probability data available"
+    "noData": "No probabilities…",
+    "methodology": "Methodology",
+    "methodologyTitle": "Probability methodology",
+    "methodologyIntro": "We compute exceedance probabilities using NASA POWER daily historical data.",
+    "methodologyWindow": "The ±10 day window around the same day-of-year is evaluated for each year from 2001 to 2024.",
+    "methodologySource": "Only valid measurements contribute; missing days do not affect the percentage.",
+    "methodologyThresholds": "Thresholds evaluated",
+    "close": "Close"
   },
   "bestDays": {
     "title": "Best days",

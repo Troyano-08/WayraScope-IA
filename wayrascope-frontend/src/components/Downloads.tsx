@@ -10,6 +10,7 @@ type DownloadsProps = {
   city?: string
   date: string
   disabled?: boolean
+  coords?: { lat: number; lon: number }
 }
 
 // TODO(manual): Confirmar que "CSV" descarga archivo con nombre del Content-Disposition o fallback.
@@ -19,7 +20,7 @@ type DownloadsProps = {
 // TODO(manual): Simular error de red/backend y validar que se muestra el toast de error sin crear un archivo.
 // TODO(manual): Con pin sin nombre de ciudad, comprobar que CSV queda deshabilitado con tooltip y JSON muestra toast informativo si falta ciudad.
 
-export const Downloads = ({ city, date, disabled = false }: DownloadsProps) => {
+export const Downloads = ({ city, date, disabled = false, coords }: DownloadsProps) => {
   const { t } = useTranslation('common')
   const [loadingCsv, setLoadingCsv] = useState(false)
   const [loadingJson, setLoadingJson] = useState(false)
@@ -35,17 +36,19 @@ export const Downloads = ({ city, date, disabled = false }: DownloadsProps) => {
     return trimmed
   }, [city])
 
+  const hasDownloadTarget = normalizedCity !== undefined || coords !== undefined
+
   const showToast = useCallback((type: 'success' | 'error' | 'info', message: string) => {
     setToast({ type, message })
     window.setTimeout(() => setToast(null), 4000)
   }, [])
 
-  const isCsvDisabled = disabled || loadingJson || !normalizedCity
-  const isJsonDisabled = disabled || loadingCsv || !normalizedCity
+  const isCsvDisabled = disabled || loadingJson || !hasDownloadTarget
+  const isJsonDisabled = disabled || loadingCsv || !hasDownloadTarget
 
   const handleCsv = async () => {
     if (isCsvDisabled) {
-      if (!normalizedCity) {
+      if (!hasDownloadTarget) {
         showToast('info', t('downloads.csvTooltipNoCity'))
       }
       return
@@ -53,7 +56,7 @@ export const Downloads = ({ city, date, disabled = false }: DownloadsProps) => {
 
     setLoadingCsv(true)
     try {
-      const { filename } = await downloadCsv({ city: normalizedCity!, date })
+      const { filename } = await downloadCsv({ city: normalizedCity, coords, date })
       showToast('success', t('downloads.success', { filename }))
     } catch (error) {
       const message =
@@ -66,7 +69,7 @@ export const Downloads = ({ city, date, disabled = false }: DownloadsProps) => {
 
   const handleJson = async () => {
     if (isJsonDisabled) {
-      if (!normalizedCity) {
+      if (!hasDownloadTarget) {
         showToast('info', t('downloads.jsonTooltipNoCity'))
       }
       return
@@ -74,7 +77,7 @@ export const Downloads = ({ city, date, disabled = false }: DownloadsProps) => {
 
     setLoadingJson(true)
     try {
-      const { filename, meta } = await downloadJson({ city: normalizedCity!, date })
+      const { filename, meta } = await downloadJson({ city: normalizedCity, coords, date })
       if (meta) {
         console.debug('WayraScope JSON meta', meta)
       }
@@ -109,7 +112,7 @@ export const Downloads = ({ city, date, disabled = false }: DownloadsProps) => {
           onClick={handleCsv}
           disabled={isCsvDisabled}
           aria-busy={loadingCsv}
-          title={isCsvDisabled && !normalizedCity ? t('downloads.csvTooltipNoCity') : undefined}
+          title={isCsvDisabled && !hasDownloadTarget ? t('downloads.csvTooltipNoCity') : undefined}
         >
           {t('downloads.csv')}
         </Button>
@@ -121,7 +124,7 @@ export const Downloads = ({ city, date, disabled = false }: DownloadsProps) => {
           onClick={handleJson}
           disabled={isJsonDisabled}
           aria-busy={loadingJson}
-          title={!normalizedCity ? t('downloads.jsonTooltipNoCity') : undefined}
+          title={!hasDownloadTarget ? t('downloads.jsonTooltipNoCity') : undefined}
         >
           {t('downloads.json')}
         </Button>

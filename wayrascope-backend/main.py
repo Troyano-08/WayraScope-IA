@@ -1,13 +1,14 @@
 # main.py
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Optional, Dict, List, Tuple, Union, Literal
 import csv
 import io
 import json
 import re
 import unicodedata
+import logging
+from datetime import datetime, timedelta
+from typing import Any, Optional, Dict, List, Tuple, Union, Literal
 
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,13 +16,14 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from utils.data_quality import series_quality
-from externals.geocoding_api import get_coordinates
+from externals.geocoding_api import get_coordinates, reverse_geocode
 from externals.openmeteo_api import (
     get_openmeteo as fetch_openmeteo_daily,
     get_hourly_weather as fetch_openmeteo_hourly,
 )
 from externals.waqi_api import get_air_quality
 from nasa.power_api import get_power_data
+from nasa.historical_probabilities import compute_historical_probabilities
 from externals.weather_api import get_hourly_weather as fetch_weather_hourly
 from utils.merge_data import merge_sources
 from ai.comfort import compute_comfort
@@ -29,6 +31,8 @@ from ai.ecoimpact import compute_ecoimpact
 from ai.compare import compare_trends
 from ai.wayrabot import wayrabot_advice, find_best_days
 from ai.nlp import nlu_infer
+
+LOGGER = logging.getLogger(__name__)
 
 app = FastAPI(title="WayraScope AI Backend", version="1.0.0")
 
@@ -43,6 +47,13 @@ app.add_middleware(
 
 class AnalyzeInput(BaseModel):
     city: str = Field(..., example="Huánuco")
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", example="2025-10-05")
+    event_type: Optional[str] = Field(default="viaje", example="viaje")
+
+
+class AnalyzeCoordsInput(BaseModel):
+    lat: float = Field(..., ge=-90.0, le=90.0)
+    lon: float = Field(..., ge=-180.0, le=180.0)
     date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", example="2025-10-05")
     event_type: Optional[str] = Field(default="viaje", example="viaje")
 
@@ -92,11 +103,26 @@ def _sanitize_filename_segment(value: str) -> str:
     return slug or "wayrascope"
 
 
-def _run_analysis(city: str, date: str, event_type: Optional[str] = None) -> Tuple[Dict, Dict]:
-    event = event_type or "viaje"
+def _normalize_location(loc: Dict[str, Any], lat: float, lon: float) -> Dict[str, Any]:
+    name = loc.get("name") or loc.get("city")
+    country = loc.get("country") or loc.get("country_code")
+    return {
+        "name": name or f"{lat:.3f}, {lon:.3f}",
+        "country": country or "NA",
+        "lat": float(lat),
+        "lon": float(lon)
+    }
 
-    loc = get_coordinates(city)
-    lat, lon = loc["lat"], loc["lon"]
+
+def _run_analysis_for_location(loc: Dict[str, Any], date: str, event: str) -> Tuple[Dict, Dict]:
+    lat = loc.get("lat")
+    lon = loc.get("lon")
+    if lat is None or lon is None:
+        raise ValueError("Ubicación sin coordenadas válidas")
+
+    lat = float(lat)
+    lon = float(lon)
+    normalized_loc = _normalize_location(loc, lat, lon)
 
     start, end = _range_10(date)
 
@@ -127,18 +153,31 @@ def _run_analysis(city: str, date: str, event_type: Optional[str] = None) -> Tup
         humidity=combined_daily["humidity"],
     )
 
+    probabilities: Optional[Dict[str, Any]] = None
+    try:
+        probabilities = compute_historical_probabilities(lat, lon, date)
+    except Exception as exc:
+        LOGGER.warning("Historical probabilities failed: %s", exc)
+
+    advisor = wayrabot_advice(event, comfort, eco, trends, best_days)
+
     out = {
-        "location": {"city": loc["name"], "country": loc["country"], "lat": lat, "lon": lon},
+        "location": {
+            "city": normalized_loc["name"],
+            "country": normalized_loc["country"],
+            "lat": normalized_loc["lat"],
+            "lon": normalized_loc["lon"],
+        },
         "range": f"{start.replace('-', '')} a {end.replace('-', '')}",
         "temperature": combined_daily["temperature"],
         "humidity": combined_daily["humidity"],
         "precipitation": combined_daily["precipitation"],
         "wind": combined_daily["wind"],
         "air_quality_index": merged["air_quality_index"],
-        "comfort_index": comfort,
-        "eco_impact": eco,
+        "comfort_index": comfort["es"],
+        "eco_impact": eco["es"],
         "trend": trends,
-        "wayra_advisor": wayrabot_advice(event, comfort, eco, trends, best_days),
+        "wayra_advisor": advisor["es"],
         "best_days": best_days,
         "sources": [s["name"] if isinstance(s, dict) else s for s in merged["sources"]],
         "meta": {
@@ -162,16 +201,44 @@ def _run_analysis(city: str, date: str, event_type: Optional[str] = None) -> Tup
         }
     }
 
+    if probabilities:
+        out["probabilities"] = probabilities
+
+    out["comfort_index_i18n"] = comfort
+    out["eco_impact_i18n"] = eco
+    out["wayra_advisor_i18n"] = advisor
+
     context = {
         "merged": merged,
         "daily": combined_daily,
         "start": start,
         "end": end,
         "event_type": event,
-        "coordinates": {"lat": lat, "lon": lon}
+        "coordinates": {"lat": normalized_loc["lat"], "lon": normalized_loc["lon"]},
+        "probabilities": probabilities or {}
     }
 
     return out, context
+
+
+def _run_analysis(city: str, date: str, event_type: Optional[str] = None) -> Tuple[Dict, Dict]:
+    event = event_type or "viaje"
+    loc = get_coordinates(city)
+    return _run_analysis_for_location(loc, date, event)
+
+
+def _run_analysis_coords(lat: float, lon: float, date: str, event_type: Optional[str] = None) -> Tuple[Dict, Dict]:
+    event = event_type or "viaje"
+    loc = None
+    try:
+        loc = reverse_geocode(lat, lon)
+    except Exception as exc:
+        LOGGER.warning("Reverse geocode failed: %s", exc)
+    if not loc:
+        loc = {"name": None, "country": None, "lat": lat, "lon": lon}
+    loc.setdefault("lat", lat)
+    loc.setdefault("lon", lon)
+    return _run_analysis_for_location(loc, date, event)
 
 
 @app.post("/analyze")
@@ -183,6 +250,17 @@ def analyze(payload: AnalyzeInput):
         raise
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Error en /analyze: {e}")
+
+
+@app.post("/analyze/coords")
+def analyze_coords(payload: AnalyzeCoordsInput):
+    try:
+        result, _ = _run_analysis_coords(payload.lat, payload.lon, payload.date, payload.event_type)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Error en /analyze/coords: {e}")
 
 
 def _build_daily_dataset(
@@ -582,7 +660,9 @@ def _build_filename(city: str, date: str, extension: str) -> str:
 
 @app.get("/download")
 def download_dataset(
-    city: str = Query(..., description="Ciudad base"),
+    city: Optional[str] = Query(None, description="Ciudad base"),
+    lat: Optional[float] = Query(None, ge=-90.0, le=90.0),
+    lon: Optional[float] = Query(None, ge=-180.0, le=180.0),
     date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
     fmt: Optional[str] = Query("csv"),
     event_type: Optional[str] = Query(None)
@@ -591,8 +671,17 @@ def download_dataset(
     if normalized_fmt not in {"csv", "json"}:
         raise HTTPException(status_code=400, detail="Formato no soportado. Usa csv o json.")
 
+    if (lat is None) ^ (lon is None):
+        raise HTTPException(status_code=400, detail="Debes proveer lat y lon juntos.")
+
+    if city is None and (lat is None or lon is None):
+        raise HTTPException(status_code=400, detail="Indica ciudad o coordenadas para generar la descarga.")
+
     try:
-        analysis, context = _run_analysis(city, date, event_type)
+        if lat is not None and lon is not None:
+            analysis, context = _run_analysis_coords(lat, lon, date, event_type)
+        else:
+            analysis, context = _run_analysis(city or "", date, event_type)
     except HTTPException:
         raise
     except Exception as exc:
@@ -613,7 +702,7 @@ def download_dataset(
     }
 
     filename = _build_filename(analysis["location"]["city"], date, normalized_fmt)
-    meta_header = json.dumps(meta, ensure_ascii=False)
+    meta_header = json.dumps(meta, ensure_ascii=True)
 
     if normalized_fmt == "json":
         payload = {"meta": meta, "data": dataset}

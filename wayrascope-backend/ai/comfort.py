@@ -2,11 +2,17 @@
 from __future__ import annotations
 from utils.safe_math import val
 
+COMFORT_TRANSLATIONS = {
+    "excellent": {"es": "Excelente 🌟", "en": "Excellent 🌟"},
+    "pleasant": {"es": "Agradable 🙂", "en": "Pleasant 🙂"},
+    "moderate": {"es": "Moderado 😐", "en": "Moderate 😐"},
+    "unfavorable": {"es": "Desfavorable 😓", "en": "Unfavourable 😓"},
+    "critical": {"es": "Crítico 🚫", "en": "Critical 🚫"},
+}
+
+
 def compute_comfort(temp_c, rh_pct, wind_ms):
-    """
-    Clasifica confort general de forma robusta a None.
-    Umbrales simples pero prácticos para eventos al aire libre.
-    """
+    """Return localized comfort summary for ES/EN."""
     t = val(temp_c, 24.0)
     h = val(rh_pct, 60.0)
     w = val(wind_ms, 2.0)
@@ -27,8 +33,15 @@ def compute_comfort(temp_c, rh_pct, wind_ms):
     elif 0.0 <= w <= 8.0: score += 1
     else: score -= 1
 
-    if score >= 5: return "Excelente 🌟"
-    if score >= 3: return "Agradable 🙂"
-    if score >= 1: return "Moderado 😐"
-    if score >= -1: return "Desfavorable 😓"
-    return "Crítico 🚫"
+    if score >= 5:
+        key = "excellent"
+    elif score >= 3:
+        key = "pleasant"
+    elif score >= 1:
+        key = "moderate"
+    elif score >= -1:
+        key = "unfavorable"
+    else:
+        key = "critical"
+
+    return COMFORT_TRANSLATIONS[key].copy()

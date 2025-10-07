@@ -3,30 +3,83 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
 from utils.safe_math import safe_mean
 
-def wayrabot_advice(event_type: str, comfort_text: str, eco_text: str, trends: Dict[str, str], best_days: List[Dict]) -> str:
-    trend_bits = []
-    for k, v in trends.items():
-        if k == "temperature" and v.startswith("⬆️"): trend_bits.append("temperaturas al alza")
-        if k == "precipitation" and v.startswith("⬇️"): trend_bits.append("menos lluvia")
-        if k == "wind" and v.startswith("➡️"): trend_bits.append("viento estable")
-    trend_sentence = f"Tendencia: {', '.join(trend_bits)}. " if trend_bits else ""
+TREND_PHRASES = {
+    "temperature_up": {"es": "temperaturas al alza", "en": "temperatures trending up"},
+    "precip_down": {"es": "menos lluvia", "en": "less rain"},
+    "wind_flat": {"es": "viento estable", "en": "steady wind"},
+}
 
-    best_txt = ""
+BASE_TIPS = {
+    "viaje": {
+        "es": "Buen momento para moverte ligero, hidrátate y prioriza actividades al aire libre.",
+        "en": "Great moment to travel light, hydrate, and prioritize outdoor activities.",
+    },
+    "desfile": {
+        "es": "Evalúa sombras y puntos de hidratación; ensaya temprano si el sol sube.",
+        "en": "Plan shaded spots and hydration points; rehearse early if the sun ramps up.",
+    },
+    "caminata": {
+        "es": "Empieza temprano, lleva bloqueador y ajusta el ritmo según el viento.",
+        "en": "Start early, pack sunscreen, and adapt your pace to the wind.",
+    },
+    "pesca": {
+        "es": "Revisa ráfagas y lluvia; si el viento es moderado, puede ser ideal.",
+        "en": "Watch gusts and rain; moderate wind can make for ideal fishing.",
+    },
+    "boda": {
+        "es": "Ten plan B bajo techo si la precipitación sube; coordina ventilación.",
+        "en": "Keep an indoor fallback if rain increases; coordinate ventilation.",
+    },
+    "picnic": {
+        "es": "Busca áreas con sombra y césped seco; evita colectores de viento.",
+        "en": "Look for shaded, dry grass areas and avoid wind tunnels.",
+    },
+}
+
+DEFAULT_TIP = {
+    "es": "Ajusta tu plan según tu tolerancia térmica y viento.",
+    "en": "Adjust your plan to your thermal comfort and wind tolerance.",
+}
+
+
+def wayrabot_advice(
+    event_type: str,
+    comfort_text: Dict[str, str],
+    eco_text: Dict[str, str],
+    trends: Dict[str, str],
+    best_days: List[Dict]
+) -> Dict[str, str]:
+    trend_bits_es: List[str] = []
+    trend_bits_en: List[str] = []
+    for key, value in trends.items():
+        lower = value.lower()
+        if key == "temperature" and value.startswith("⬆️"):
+            trend_bits_es.append(TREND_PHRASES["temperature_up"]["es"])
+            trend_bits_en.append(TREND_PHRASES["temperature_up"]["en"])
+        if key == "precipitation" and value.startswith("⬇️"):
+            trend_bits_es.append(TREND_PHRASES["precip_down"]["es"])
+            trend_bits_en.append(TREND_PHRASES["precip_down"]["en"])
+        if key == "wind" and value.startswith("➡️"):
+            trend_bits_es.append(TREND_PHRASES["wind_flat"]["es"])
+            trend_bits_en.append(TREND_PHRASES["wind_flat"]["en"])
+
+    trend_sentence_es = f"Tendencia: {', '.join(trend_bits_es)}. " if trend_bits_es else ""
+    trend_sentence_en = f"Trend: {', '.join(trend_bits_en)}. " if trend_bits_en else ""
+
+    best_txt_es = ""
+    best_txt_en = ""
     if best_days:
         tops = [d["date"] for d in best_days[:3]]
-        best_txt = f" Días recomendados: {', '.join(tops)}."
+        joined = ', '.join(tops)
+        best_txt_es = f" Días recomendados: {joined}."
+        best_txt_en = f" Recommended days: {joined}."
 
-    base = {
-        "viaje": "Buen momento para moverte ligero, hidrátate y prioriza actividades al aire libre.",
-        "desfile": "Evalúa sombras y puntos de hidratación; ensaya temprano si el sol sube.",
-        "caminata": "Empieza temprano, lleva bloqueador y ajusta el ritmo según el viento.",
-        "pesca": "Revisa ráfagas y lluvia; si el viento es moderado, puede ser ideal.",
-        "boda": "Ten plan B bajo techo si la precipitación sube; coordina ventilación.",
-        "picnic": "Busca áreas con sombra y césped seco; evita colectores de viento."
+    tip = BASE_TIPS.get(event_type.lower(), DEFAULT_TIP)
+
+    return {
+        "es": (f"{trend_sentence_es}Confort: {comfort_text['es']}. {eco_text['es']}. {tip['es']}{best_txt_es}").strip(),
+        "en": (f"{trend_sentence_en}Comfort: {comfort_text['en']}. {eco_text['en']}. {tip['en']}{best_txt_en}").strip(),
     }
-    tip = base.get(event_type.lower(), "Ajusta tu plan según tu tolerancia térmica y viento.")
-
-    return (f"{trend_sentence}Confort: {comfort_text}. {eco_text}. {tip}{best_txt}").strip()
 
 def find_best_days(event_type: str, dates: List[str], temperature: List[Optional[float]],
                    precipitation: List[Optional[float]], wind: List[Optional[float]], humidity: List[Optional[float]]) -> List[Dict]:

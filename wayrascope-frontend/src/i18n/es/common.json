@@ -35,9 +35,15 @@
   "map": {
     "title": "Selecciona en el mapa",
     "radiusLabel": "Radio visual {{value}}",
-    "instructions": "Haz clic para fijar el pin (radio ±5 km)",
-    "helper": "La ciudad se completa automáticamente tras analizar",
-    "clear": "Limpiar pin"
+    "instructions": "Haz clic o arrastra el pin para fijar coordenadas (radio ±5 km)",
+    "helper": "La ciudad se completa automáticamente tras analizar o usa tu ubicación.",
+    "clear": "Limpiar pin",
+    "cursor": "Cursor {{lat}}°, {{lon}}°",
+    "selected": "Pin {{lat}}°, {{lon}}°",
+    "geoLocate": "Usar mi ubicación",
+    "geoLocating": "Ubicando...",
+    "geoError": "No pudimos obtener tu ubicación.",
+    "geoUnsupported": "Tu navegador no permite geolocalización."
   },
   "cards": {
     "location": "Ubicación",
@@ -103,7 +109,14 @@
     "above": "≥ {{value}} {{unit}}",
     "below": "≤ {{value}} {{unit}}",
     "sample": "Ventana ±10 días · n = {{value}}",
-    "noData": "Sin probabilidades disponibles"
+    "noData": "Sin probabilidades…",
+    "methodology": "Metodología",
+    "methodologyTitle": "Metodología de probabilidades",
+    "methodologyIntro": "Calculamos la probabilidad de exceder umbrales usando datos diarios históricos de NASA POWER.",
+    "methodologyWindow": "Se consideran los 21 días alrededor del mismo día del año (DOY ±10) para cada año de 2001 a 2024.",
+    "methodologySource": "Solo se cuentan días con dato válido; los valores faltantes no aportan al porcentaje.",
+    "methodologyThresholds": "Umbrales evaluados",
+    "close": "Cerrar"
   },
   "bestDays": {
     "title": "Mejores días",

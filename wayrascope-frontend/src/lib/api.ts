@@ -69,9 +69,12 @@ export type AnalyzeResponse = {
     source: string
   }
   comfort_index: string
+  comfort_index_i18n?: Record<'es' | 'en', string>
   eco_impact: string
+  eco_impact_i18n?: Record<'es' | 'en', string>
   trend: TrendMap
   wayra_advisor: string
+  wayra_advisor_i18n?: Record<'es' | 'en', string>
   best_days: BestDay[]
   probabilities?: Probabilities
   sources: string[]
@@ -173,15 +176,38 @@ const buildFallbackFilename = (city: string, date: string, extension: string) =>
   return `wayrascope_${cityPart}_${datePart}.${extension}`
 }
 
-export const downloadCsv = async ({ city, date }: { city: string; date: string }): Promise<{ filename: string; meta?: unknown }> => {
+type DownloadTarget = {
+  city?: string
+  coords?: { lat: number; lon: number }
+  date: string
+}
+
+const buildDownloadParams = ({ city, coords, date }: DownloadTarget, fmt: 'csv' | 'json') => {
+  const params: Record<string, string | number> = { date, fmt }
+  if (coords) {
+    params.lat = Number(coords.lat.toFixed(4))
+    params.lon = Number(coords.lon.toFixed(4))
+  }
+  if (city) {
+    params.city = city
+  }
+  return params
+}
+
+const buildFallbackName = ({ city, coords, date, extension }: DownloadTarget & { extension: string }) => {
+  const baseCity = city ?? (coords ? `${coords.lat.toFixed(3)}_${coords.lon.toFixed(3)}` : 'wayrascope')
+  return `wayrascope_${sanitizeFilenameSegment(baseCity)}_${sanitizeFilenameSegment(date)}.${extension}`
+}
+
+export const downloadCsv = async ({ city, coords, date }: DownloadTarget): Promise<{ filename: string; meta?: unknown }> => {
   const response = await api.get<Blob>('/download', {
-    params: { city, date, fmt: 'csv' },
+    params: buildDownloadParams({ city, coords, date }, 'csv'),
     responseType: 'blob'
   })
 
   const disposition = response.headers['content-disposition'] as string | undefined
   const filename =
-    parseFilenameFromContentDisposition(disposition) ?? buildFallbackFilename(city, date, 'csv')
+    parseFilenameFromContentDisposition(disposition) ?? buildFallbackName({ city, coords, date, extension: 'csv' })
 
   const metaHeader = response.headers['x-wayrameta'] as string | undefined
   let meta: unknown
@@ -204,15 +230,15 @@ export const downloadCsv = async ({ city, date }: { city: string; date: string }
   return { filename, meta }
 }
 
-export const downloadJson = async ({ city, date }: { city: string; date: string }): Promise<{ filename: string; meta?: unknown }> => {
+export const downloadJson = async ({ city, coords, date }: DownloadTarget): Promise<{ filename: string; meta?: unknown }> => {
   const response = await api.get<Blob>('/download', {
-    params: { city, date, fmt: 'json' },
+    params: buildDownloadParams({ city, coords, date }, 'json'),
     responseType: 'blob'
   })
 
   const disposition = response.headers['content-disposition'] as string | undefined
   const filename =
-    parseFilenameFromContentDisposition(disposition) ?? buildFallbackFilename(city, date, 'json')
+    parseFilenameFromContentDisposition(disposition) ?? buildFallbackName({ city, coords, date, extension: 'json' })
 
   const metaHeader = response.headers['x-wayrameta'] as string | undefined
   let meta: unknown

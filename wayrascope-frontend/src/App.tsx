@@ -102,8 +102,16 @@ export const App = () => {
   const showSkeletons = analyzeLoading
   const showEmptyState = !analyzeLoading && !analyzeResult
 
-  const advisorText = useMemo(() => analyzeResult?.wayra_advisor ?? '', [analyzeResult])
+  const advisorText = useMemo(() => {
+    if (!analyzeResult) return ''
+    const lang = (i18n.language as 'es' | 'en') || 'es'
+    return analyzeResult.wayra_advisor_i18n?.[lang] ?? analyzeResult.wayra_advisor
+  }, [analyzeResult, i18n.language])
   const downloadsCity = useMemo(() => analyzeResult?.location.city ?? cityInput, [analyzeResult, cityInput])
+  const downloadsCoords = useMemo(() => {
+    if (!analyzeResult) return undefined
+    return { lat: analyzeResult.location.lat, lon: analyzeResult.location.lon }
+  }, [analyzeResult])
 
   return (
     <div className={clsx('min-h-screen pb-16 text-slate-900 transition-colors duration-500', theme === 'dark' && 'text-white')}>
@@ -166,12 +174,25 @@ export const App = () => {
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <LocationCard location={analyzeResult.location} />
-              <ComfortCard comfortIndex={analyzeResult.comfort_index} advisor={analyzeResult.wayra_advisor} />
-              <EcoCard ecoImpact={analyzeResult.eco_impact} />
+              <ComfortCard
+                comfortIndex={analyzeResult.comfort_index}
+                comfortIndexI18n={analyzeResult.comfort_index_i18n}
+                advisor={analyzeResult.wayra_advisor}
+                advisorI18n={analyzeResult.wayra_advisor_i18n}
+              />
+              <EcoCard ecoImpact={analyzeResult.eco_impact} ecoImpactI18n={analyzeResult.eco_impact_i18n} />
               <AqiCard airQuality={analyzeResult.air_quality_index} />
             </div>
 
-            <TrendsBar trend={analyzeResult.trend} />
+            <TrendsBar
+              trend={analyzeResult.trend}
+              series={{
+                temperature: analyzeResult.temperature,
+                precipitation: analyzeResult.precipitation,
+                humidity: analyzeResult.humidity,
+                wind: analyzeResult.wind
+              }}
+            />
 
             <DailyChart
               range={analyzeResult.range}
@@ -204,7 +225,7 @@ export const App = () => {
 
             {hourlyLoading ? <LoadingPlanet size="sm" label={t('inputs.analyzing')} /> : <HourlyChart data={hourlyData} />}
 
-            <Downloads city={downloadsCity} date={date} disabled={!analyzeResult} />
+            <Downloads city={downloadsCity} coords={downloadsCoords} date={date} disabled={!analyzeResult} />
 
             <SourcesFooter sources={analyzeResult.sources} units={analyzeResult.meta.units} />
           </div>

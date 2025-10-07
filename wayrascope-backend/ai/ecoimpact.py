@@ -2,10 +2,33 @@
 from __future__ import annotations
 from utils.safe_math import val
 
+PRECIP_TRANSLATIONS = {
+    "unknown": {"es": "lluvia desconocida", "en": "rain unknown"},
+    "low": {"es": "lluvia baja", "en": "low rain"},
+    "moderate": {"es": "lluvia moderada", "en": "moderate rain"},
+    "high": {"es": "lluvia alta", "en": "heavy rain"},
+}
+
+IMPACT_TRANSLATIONS = {
+    "low": {"es": "Bajo impacto 🌱", "en": "Low impact 🌱"},
+    "medium": {"es": "Impacto medio 🌿", "en": "Medium impact 🌿"},
+    "high": {"es": "Alto impacto ⚠️", "en": "High impact ⚠️"},
+}
+
+AQI_KNOWN_CATEGORIES = {
+    "good": {"es": "Buena", "en": "Good"},
+    "moderate": {"es": "Moderada", "en": "Moderate"},
+    "unhealthy for sensitive groups": {"es": "Dañina a sensibles", "en": "Unhealthy for sensitive groups"},
+    "unhealthy": {"es": "Dañina", "en": "Unhealthy"},
+    "very unhealthy": {"es": "Muy dañina", "en": "Very unhealthy"},
+    "hazardous": {"es": "Peligrosa", "en": "Hazardous"},
+    "desconocida": {"es": "Desconocida", "en": "Unknown"},
+    "unknown": {"es": "Desconocida", "en": "Unknown"},
+}
+
+
 def compute_ecoimpact(temp_c, precip_mm, air_quality: dict | None):
-    """
-    Integra precipitación y AQI; pequeño texto amigable.
-    """
+    """Return localized eco impact summary (ES/EN)."""
     t = val(temp_c, 24.0)
     p = val(precip_mm, 0.0)
     aqi = None
@@ -19,21 +42,24 @@ def compute_ecoimpact(temp_c, precip_mm, air_quality: dict | None):
 
     # Clasificación simple por precipitación
     if p is None:
-        p_tag = "lluvia desconocida"
+        precip_key = "unknown"
     elif p < 1.0:
-        p_tag = "lluvia baja"
+        precip_key = "low"
     elif p < 5.0:
-        p_tag = "lluvia moderada"
+        precip_key = "moderate"
     else:
-        p_tag = "lluvia alta"
+        precip_key = "high"
+
+    precip_text = PRECIP_TRANSLATIONS[precip_key]
 
     # AQI
     if aqi is None:
-        aqi_text = "AQI: s/d"
-        aq_cat = "Desconocida"
+        aq_cat = AQI_KNOWN_CATEGORIES["unknown"]
+        aqi_text = {"es": "AQI: s/d", "en": "AQI: n/a"}
     else:
-        aq_cat = category or _aqi_category(aqi)
-        aqi_text = f"AQI: {aqi} ({aq_cat})"
+        cat = _resolve_aqi_category(category, aqi)
+        aq_cat = cat
+        aqi_text = {"es": f"AQI: {aqi} ({cat['es']})", "en": f"AQI: {aqi} ({cat['en']})"}
 
     # Impacto general (más lluvia + peor AQI => mayor impacto)
     impact_score = 0
@@ -46,19 +72,40 @@ def compute_ecoimpact(temp_c, precip_mm, air_quality: dict | None):
         else: impact_score += 3
 
     if impact_score <= 1:
-        head = "Bajo impacto 🌱"
+        impact_key = "low"
     elif impact_score <= 3:
-        head = "Impacto medio 🌿"
+        impact_key = "medium"
     else:
-        head = "Alto impacto ⚠️"
+        impact_key = "high"
 
-    pol = f", dominante: {pollutant}" if pollutant else ""
-    return f"{head} — {p_tag}. {aqi_text}{pol}"
+    impact_text = IMPACT_TRANSLATIONS[impact_key]
 
-def _aqi_category(aqi:int) -> str:
-    if aqi <= 50: return "Buena"
-    if aqi <= 100: return "Moderada"
-    if aqi <= 150: return "Dañina a sensibles"
-    if aqi <= 200: return "Dañina"
-    if aqi <= 300: return "Muy dañina"
-    return "Peligrosa"
+    pol_text = {
+        "es": f", dominante: {pollutant}" if pollutant else "",
+        "en": f", dominant: {pollutant}" if pollutant else "",
+    }
+
+    return {
+        "es": f"{impact_text['es']} — {precip_text['es']}. {aqi_text['es']}{pol_text['es']}",
+        "en": f"{impact_text['en']} — {precip_text['en']}. {aqi_text['en']}{pol_text['en']}",
+    }
+
+
+def _resolve_aqi_category(category: str | None, aqi: int) -> dict[str, str]:
+    if category:
+        key = category.strip().lower()
+        normalized = AQI_KNOWN_CATEGORIES.get(key)
+        if normalized:
+            return normalized
+
+    if aqi <= 50:
+        return AQI_KNOWN_CATEGORIES["good"]
+    if aqi <= 100:
+        return AQI_KNOWN_CATEGORIES["moderate"]
+    if aqi <= 150:
+        return AQI_KNOWN_CATEGORIES["unhealthy for sensitive groups"]
+    if aqi <= 200:
+        return AQI_KNOWN_CATEGORIES["unhealthy"]
+    if aqi <= 300:
+        return AQI_KNOWN_CATEGORIES["very unhealthy"]
+    return AQI_KNOWN_CATEGORIES["hazardous"]

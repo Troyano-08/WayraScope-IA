@@ -7,11 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card'
 
 type Props = {
   comfortIndex: AnalyzeResponse['comfort_index']
+  comfortIndexI18n?: AnalyzeResponse['comfort_index_i18n']
   advisor: AnalyzeResponse['wayra_advisor']
+  advisorI18n?: AnalyzeResponse['wayra_advisor_i18n']
 }
 
-export const ComfortCard = ({ comfortIndex, advisor }: Props) => {
-  const { t } = useTranslation('common')
+export const ComfortCard = ({ comfortIndex, comfortIndexI18n, advisor, advisorI18n }: Props) => {
+  const { t, i18n } = useTranslation('common')
+  const lang = (i18n.language as 'es' | 'en') || 'es'
+  const localizedComfort = comfortIndexI18n?.[lang] ?? comfortIndex
+  const localizedAdvisor = advisorI18n?.[lang] ?? advisor
   const emoji = comfortEmoji(comfortIndex)
   const tone = comfortTone(comfortIndex)
 
@@ -26,9 +31,9 @@ export const ComfortCard = ({ comfortIndex, advisor }: Props) => {
           <span aria-hidden className="text-2xl">
             {emoji}
           </span>
-          <span>{comfortIndex}</span>
+          <span>{localizedComfort}</span>
         </div>
-        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{advisor}</p>
+        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{localizedAdvisor}</p>
       </CardContent>
     </Card>
   )
